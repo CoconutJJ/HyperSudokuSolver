@@ -29,35 +29,37 @@ class HyperSudoku:
 
             return self.x == other.x and self.y == other.y
 
-        def connectAffected(self, node: SudokuNode):
-            # check for the edge in O(1)
-            if self.edgeCoords[node.x] & (1 << (node.y - 1)) == 0:
-                self.affectededges.append(node)
-                self.edgeCoords[node.x] |= (1 << (node.y - 1))
-                node.connect(self)
+        def connect(self, node: HyperSudoku.SudokuNode):
+            # # check for the edge in O(1)
+            # if self.edgeCoords[node.x] & (1 << (node.y - 1)) == 0:
+            #     self.affectededges.append(node)
+            #     self.edgeCoords[node.x] |= (1 << (node.y - 1))
+            #     node.connect(self)
         
-        def connectUnAffected(self, node: SudokuNode):
-            self.unaffectededges.append(node)
+        # def connectUnAffected(self, node: HyperSudoku.SudokuNode):
+        #     self.unaffectededges.append(node)
 
-        def isNeighbour(self, node: SudokuNode):
-            # check if neighbour in O(1)
-            return self.edgeCoords[node.x] & (1 << (node.y - 1)) > 0
-        
+        def setPossibleValues(self, possibleValues):
+            pass
+
+        def removeValueFromAffectedEdges(self, val:int):
+            pass
+
         def removeValue(self, val: int):
             # run in O(1)
-            self.possibleValues = self.possibleValues & ~(1 << (val - 1))
-        
+            # self.possibleValues = self.possibleValues & ~(1 << (val - 1))
+            pass
         def addValue(self, val: int):
             
-            self.possibleValues = self.possibleValues | (1 << (val - 1))
-
+            # self.possibleValues = self.possibleValues | (1 << (val - 1))
+            pass
         def getPossibleValues(self, val: int): # O(n) :(
-            L = []
-            for i in range(9):
-                if self.possibleValues & (1 << i) > 0:
-                    L.append(i+1) 
-            return L
-
+            # L = []
+            # for i in range(9):
+            #     if self.possibleValues & (1 << i) > 0:
+            #         L.append(i+1) 
+            # return L
+            pass
 
     @staticmethod
     def solve(grid):
@@ -76,7 +78,7 @@ class HyperSudoku:
         
         return None     # Update this to return correctly
 
-    def _isAffected(x1,y1,x2,y2):
+    def _isAffected(self, x1,y1,x2,y2):
         
         # check if same column or same row
         if x1 == x2:
@@ -104,6 +106,49 @@ class HyperSudoku:
                         return True
         return False
 
+
+    def getPossibleValuesSquare(self, grid, x,y):
+
+        x_sq = int(x/3)
+        y_sq = int(y/3)
+        possibleValues = pow(2,9)
+        for i in range(0,3):
+            for j in range(0,3):
+                possibleValues = possibleValues & ~(1 << (grid[i + y_sq * 3][j + x_sq * 3] - 1)) 
+
+        return possibleValues
+
+
+    def getPossibleValuesRowsCols(self, grid, x,y):
+        possibleValues = pow(2,9)
+        for i in range(9):
+
+            if grid[i][x] != 0:
+                possibleValues = possibleValues & ~(1 << (grid[i][x] - 1)) 
+            
+            if grid[y][i] != 0:
+                possibleValues = possibleValues & ~(1 << (grid[y][i] - 1)) 
+
+        return possibleValues
+    
+    
+
+    def _buildGraph(self, grid):
+        graphs = []
+
+        for i in range(9):
+            for j in range(9):
+                
+                if grid[i][j] == 0:
+                    
+                    node = HyperSudoku.SudokuNode(j,i)
+                    
+                    # calculate intersect of two bitmaps
+                    node.setPossibleValues(self.getPossibleValuesRowsCols(grid, j, i) & self.getPossibleValuesSquare(grid, j, i))
+                    
+                    graphs.append(node)
+
+
     def _solveGraph(self, start: SudokuNode):
 
         for i in range(len(start.edges)):
@@ -111,13 +156,19 @@ class HyperSudoku:
 
             if len(possible_values) != 0:
                 for v in possible_values:
-                    start.value = v;
-
+                    
+                    # set first possible value 
+                    start.value = v
+                    
+                    # remove the value from its list
                     start.removeValue(v)
-                    self.edges[i].removeValue(v)
 
-                    start.visited = 1;
-                
+                    # remove the value from all affected nodes
+                    start.removeValueFromAffectedEdges(v)
+
+                    # mark itself as visited
+                    start.visited = 1
+
                     if not self._solveGraph(start.edges[i]):
                         start.visited = 0
                         start.addValue(v)
@@ -126,6 +177,7 @@ class HyperSudoku:
                         return True
             else:
                 return False
+        return False
 
 
     @staticmethod
