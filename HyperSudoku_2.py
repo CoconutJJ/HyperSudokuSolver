@@ -15,7 +15,8 @@
 
 class HyperSudoku:
 
-
+    # BITMAP of 9 BITS: Bit 0 -> 1, Bit 1 -> 2, etc..
+    ALL_POSSIBLE_VALUES = 511 # 2^9 - 1
     @staticmethod
     def solve(grid):
         """
@@ -35,7 +36,7 @@ class HyperSudoku:
                 
                 if grid[i][j] == 0:
 
-                    possible_values = HyperSudoku.getPossibleValuesSquare(grid, j,i) & HyperSudoku.getPossibleValuesRowsCols(grid, j,i) & HyperSudoku.getPossibleValuesHyperSquares(grid, j, i)
+                    possible_values = HyperSudoku.getPossibleValues(grid, j, i) # HyperSudoku.getPossibleValuesSquare(grid, j,i) & HyperSudoku.getPossibleValuesRowsCols(grid, j,i) & HyperSudoku.getPossibleValuesHyperSquares(grid, j, i)
                     
                     for v in range(9):
                         if (possible_values & (1 << v)) > 0:
@@ -49,13 +50,11 @@ class HyperSudoku:
 
         return grid
 
-
     @staticmethod
-    def getPossibleValuesSquare(grid, x,y):
-
+    def getPossibleValues(grid, x, y):
         x_sq = int(x/3)
         y_sq = int(y/3)
-        possibleValues = pow(2,9) - 1
+        possibleValues = HyperSudoku.ALL_POSSIBLE_VALUES
         for i in range(0,3):
             for j in range(0,3):
                 cx = j + x_sq * 3
@@ -63,11 +62,6 @@ class HyperSudoku:
                 if grid[cy][cx] != 0:
                     possibleValues = possibleValues & ~(1 << (grid[cy][cx] - 1)) 
 
-        return possibleValues
-
-    @staticmethod
-    def getPossibleValuesRowsCols(grid, x,y):
-        possibleValues = pow(2,9) - 1
         for i in range(9):
 
             if grid[i][x] != 0:
@@ -75,11 +69,7 @@ class HyperSudoku:
             
             if grid[y][i] != 0:
                 possibleValues = possibleValues & ~(1 << (grid[y][i] - 1)) 
-
-        return possibleValues
-    
-    @staticmethod
-    def getPossibleValuesHyperSquares(grid, x, y):
+        
         for x_off in [0,4]:
             for y_off in [0,4]:
                 xlb = 1 + x_off
@@ -88,16 +78,13 @@ class HyperSudoku:
                 yub = 3 + y_off
                 if xlb <= x <= xub and ylb <= y <= yub:
                 
-                    possibleValues = pow(2,9) - 1
-                
                     for i in range(ylb, yub + 1):
                         for j in range(xlb, xub + 1):
                             if grid[i][j] != 0:
                                 possibleValues = possibleValues & ~(1 << (grid[i][j] - 1)) 
                 
-                    return possibleValues
-        return pow(2,9) - 1
-    
+        return possibleValues
+
     @staticmethod
     def printGrid(grid):
         """
@@ -118,20 +105,22 @@ class HyperSudoku:
             if (i % 3 == 2):
                 print("-"*25)
 
-
-
 if __name__ == "__main__":
-
-    grid = [
-        [0,6,0,0,7,2,0,0,1],
-        [8,0,0,1,3,6,5,0,0],
-        [0,0,3,4,0,0,0,0,0],
-        [2,0,0,6,5,0,0,3,0],
-        [0,0,6,0,0,7,0,1,0],
-        [0,0,0,2,0,0,8,6,4],
-        [9,0,7,0,8,4,0,0,0],
-        [0,0,8,0,0,9,0,7,0],
-        [0,0,0,7,2,1,0,8,3]
-    ]
-
-    HyperSudoku.printGrid(HyperSudoku.solve(grid))
+    import json
+    import time
+    times = []
+    with open('100K_puzzles.txt', 'r') as f:
+        puzzles = json.loads(f.readlines()[0].rstrip())
+    x = 0
+    for grid, soln in puzzles:
+        t = time.time()
+        my_soln = HyperSudoku.solve(grid)
+        
+        times.append(time.time() - t)
+        print(str(times[x]) + "," + str(x))
+        x += 1
+        
+        assert soln == my_soln
+        
+        if (x == 20): break
+    print(sum(times)/len(times))
